@@ -1,0 +1,1 @@
+SMB-FLAG{null_s3ss10ns_l3ak}
