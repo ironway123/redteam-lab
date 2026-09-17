@@ -75,8 +75,10 @@ Every scenario under `scenarios/NN-name/` follows the same shape:
 ## The `verify` command
 
 ```bash
-./lab verify 01-recon     # verify one scenario (resets it first, waits for
-                           # targets to settle, then runs its verify.sh)
+./lab verify 01-recon     # run this scenario's checkpoint against whatever
+                           # is currently up (does NOT reset it first — run
+                           # `./lab up`/`./lab reset` beforehand if you need
+                           # a clean state)
 ./lab verify --all        # run every scenario's verify.sh in sequence
 ```
 
