@@ -8,7 +8,8 @@ bash -n lab || fail "lab has a syntax error"
 [ -x lab ] || fail "lab is not executable"
 
 ./lab help | grep -q "redteam-lab control script" || fail "help banner missing"
-./lab list | grep -qi "no scenarios" || fail "empty list should say 'no scenarios'"
+list_output="$(./lab list)"
+grep -qi "01-recon" <<<"$list_output" || fail "list should show scenarios"
 grep -qi "authorization" README.md || fail "README missing authorization/safety notice"
 
 echo "PASS: lab-smoke"
