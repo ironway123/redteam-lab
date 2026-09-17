@@ -22,6 +22,10 @@ deliberately vulnerable targets on an **isolated private network**.
     ./lab down --all        # stop everything (lab only)
     ./lab verify 01-recon   # run the scenario's self-check
 
+First `./lab up`/`./lab reset` fetches LinPEAS into `attacker/linpeas.sh` if
+it's missing (needs internet for the real script; otherwise an offline
+placeholder is used).
+
 See `docs/getting-started.md` for the full walkthrough.
 
 ## Scenarios

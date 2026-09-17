@@ -24,6 +24,11 @@ accordingly and keep them isolated.
   Shop, Samba, a couple of small custom Debian/Alpine targets).
 - A terminal. Nothing else runs on your host — every attack tool lives
   inside the `redteam-lab-attacker` container.
+- Internet access on first build: if `attacker/linpeas.sh` is missing,
+  `./lab up`/`./lab reset` fetch it from the LinPEAS project automatically.
+  If you're offline at that moment, an executable placeholder stub is
+  written instead so the build still succeeds (drop the real script into
+  `attacker/` and rebuild whenever you're back online).
 
 ## The daily loop
 
@@ -46,12 +51,16 @@ Notes on this loop:
   for the *same* scenario again (useful after you've broken something, or
   for `04-privesc`, to roll a new escalation path — see that scenario's
   README).
-- `./lab down` stops and removes only this project's containers, network,
-  and volumes (everything is scoped under the `redteam-lab` Compose project
-  name); it does not touch anything else running on your machine.
-- Teardown/reset always use `docker compose down -v`, so scenario state
-  (e.g. a DVWA database you initialized) does not survive a reset — that's
-  intentional, so every attempt starts from the same known-clean baseline.
+- `./lab down` stops and removes this project's containers, network, and
+  volumes (everything is scoped under the `redteam-lab` Compose project
+  name); it does not touch anything else running on your machine. This is
+  full teardown — including the persistent volumes below.
+- `./lab reset <scenario>` rebuilds that scenario's target containers from
+  scratch, so scenario-local state (e.g. a DVWA database you initialized)
+  does not survive a reset — that's intentional, so every attempt starts
+  from the same known-clean baseline. It **preserves** the persistent
+  `redteam-loot` (and `redteam-wifi`) volumes: anything you've stashed in
+  the attacker box's `/root/loot` survives a reset, by design.
 
 ## How each scenario is structured
 
