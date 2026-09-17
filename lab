@@ -9,6 +9,27 @@ BASE="docker-compose.base.yml"
 ATTACKER="redteam-lab-attacker"
 STATE_FILE="$LAB_DIR/.active-scenario"
 
+LINPEAS_PATH="attacker/linpeas.sh"
+LINPEAS_URL="https://raw.githubusercontent.com/peass-ng/PEASS-ng/master/linPEAS/linpeas.sh"
+
+ensure_linpeas() {
+  [ -f "$LINPEAS_PATH" ] && return 0
+  echo ">> fetching linpeas.sh into $LINPEAS_PATH ..."
+  if command -v curl >/dev/null 2>&1 && curl -fsSL "$LINPEAS_URL" -o "$LINPEAS_PATH"; then
+    :
+  elif command -v wget >/dev/null 2>&1 && wget -q "$LINPEAS_URL" -O "$LINPEAS_PATH"; then
+    :
+  else
+    echo ">> could not fetch linpeas.sh (offline?); writing a placeholder stub." >&2
+    cat > "$LINPEAS_PATH" <<'EOF'
+#!/usr/bin/env bash
+echo "linpeas placeholder — real script not fetched (offline at build time)."
+echo "Re-run ./lab up with network access, or drop the real linpeas.sh into attacker/ and rebuild."
+EOF
+  fi
+  chmod +x "$LINPEAS_PATH"
+}
+
 list_scenarios() {
   local found=0
   for d in scenarios/*/; do
@@ -42,6 +63,7 @@ case "$cmd" in
   help|-h|--help) usage ;;
   up)
     scenario="${1:-}"
+    ensure_linpeas
     if [ "$scenario" = "base" ]; then
       docker compose -p "$PROJECT" -f "$BASE" up -d --build
       echo ">> base (attacker + network) is up."
@@ -67,7 +89,8 @@ case "$cmd" in
   reset)
     scenario="${1:-}"
     [ -f "scenarios/$scenario/docker-compose.yml" ] || { echo "Unknown scenario: '$scenario'" >&2; exit 1; }
-    docker compose -p "$PROJECT" down -v --remove-orphans
+    ensure_linpeas
+    docker compose -p "$PROJECT" down --remove-orphans
     docker compose -p "$PROJECT" -f "$BASE" -f "scenarios/$scenario/docker-compose.yml" up -d --build
     echo "$scenario" > "$STATE_FILE"
     echo ">> '$scenario' reset to a clean state."
