@@ -19,11 +19,10 @@ services:
     networks:
       redteam-lab-net: { ipv4_address: 172.28.0.12 }
   recon-multi:
-    image: nginx:alpine
+    build: ./scenarios/01-recon/targets/recon-multi
     container_name: redteam-lab-recon-multi
     command: >
-      sh -c "apk add --no-cache socat >/dev/null 2>&1;
-             socat TCP-LISTEN:2121,fork,reuseaddr SYSTEM:'echo 220 lab-ftp' &
+      sh -c "socat TCP-LISTEN:2121,fork,reuseaddr SYSTEM:'echo 220 lab-ftp' &
              socat TCP-LISTEN:8000,fork,reuseaddr SYSTEM:'echo HTTP/1.0 200' &
              nginx -g 'daemon off;'"
     networks:

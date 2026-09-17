@@ -17,6 +17,7 @@ networks:
   redteam-lab-net:
     name: redteam-lab-net
     driver: bridge
+    internal: true
     ipam:
       config:
         - subnet: 172.28.0.0/24
