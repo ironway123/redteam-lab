@@ -40,7 +40,54 @@ cmd="${1:-help}"; shift || true
 case "$cmd" in
   list) echo "Scenarios:"; list_scenarios ;;
   help|-h|--help) usage ;;
-  up|down|shell|reset|verify)
-    echo "Not implemented yet (added in Task 2+)." >&2; exit 2 ;;
+  up)
+    scenario="${1:-}"
+    if [ "$scenario" = "base" ]; then
+      docker compose -p "$PROJECT" -f "$BASE" up -d --build
+      echo ">> base (attacker + network) is up."
+      exit 0
+    fi
+    [ -f "scenarios/$scenario/docker-compose.yml" ] || { echo "Unknown scenario: '$scenario'" >&2; list_scenarios >&2; exit 1; }
+    if [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE")" != "$scenario" ]; then
+      echo ">> switching scenarios; tearing down $(cat "$STATE_FILE")"
+      docker compose -p "$PROJECT" down -v --remove-orphans
+    fi
+    docker compose -p "$PROJECT" -f "$BASE" -f "scenarios/$scenario/docker-compose.yml" up -d --build
+    echo "$scenario" > "$STATE_FILE"
+    echo ">> '$scenario' is up. Enter the attacker box: ./lab shell"
+    ;;
+  down)
+    docker compose -p "$PROJECT" down -v --remove-orphans
+    rm -f "$STATE_FILE"
+    echo ">> lab down."
+    ;;
+  shell)
+    docker exec -it "$ATTACKER" bash
+    ;;
+  reset)
+    scenario="${1:-}"
+    [ -f "scenarios/$scenario/docker-compose.yml" ] || { echo "Unknown scenario: '$scenario'" >&2; exit 1; }
+    docker compose -p "$PROJECT" down -v --remove-orphans
+    docker compose -p "$PROJECT" -f "$BASE" -f "scenarios/$scenario/docker-compose.yml" up -d --build
+    echo "$scenario" > "$STATE_FILE"
+    echo ">> '$scenario' reset to a clean state."
+    ;;
+  verify)
+    if [ "${1:-}" = "--all" ]; then
+      rc=0
+      for d in scenarios/*/; do
+        n="$(basename "$d")"; [ -f "$d/verify.sh" ] || continue
+        echo "== verify $n =="
+        "$LAB_DIR/lab" reset "$n" >/dev/null
+        # wait for targets to settle
+        sleep 15
+        bash "$d/verify.sh" || rc=1
+      done
+      exit $rc
+    fi
+    scenario="${1:-}"
+    [ -f "scenarios/$scenario/verify.sh" ] || { echo "No verify.sh for '$scenario'" >&2; exit 1; }
+    bash "scenarios/$scenario/verify.sh"
+    ;;
   *) echo "Unknown command: $cmd" >&2; usage; exit 1 ;;
 esac
