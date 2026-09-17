@@ -1,0 +1,4 @@
+.active-scenario
+attacker/linpeas.sh
+scenarios/05-wireless-offline/data/*.cap
+scenarios/05-wireless-offline/data/*.hccapx

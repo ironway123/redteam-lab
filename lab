@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LAB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$LAB_DIR"
+
+PROJECT="redteam-lab"
+BASE="docker-compose.base.yml"
+ATTACKER="redteam-lab-attacker"
+STATE_FILE="$LAB_DIR/.active-scenario"
+
+list_scenarios() {
+  local found=0
+  for d in scenarios/*/; do
+    [ -f "${d}docker-compose.yml" ] || continue
+    found=1
+    local name status="stopped"
+    name="$(basename "$d")"
+    if [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE")" = "$name" ]; then
+      status="ACTIVE"
+    fi
+    printf "  %-24s %s\n" "$name" "$status"
+  done
+  [ "$found" -eq 1 ] || echo "  (no scenarios yet)"
+}
+
+usage() {
+  cat <<'EOF'
+redteam-lab control script
+  ./lab list                 list scenarios and status
+  ./lab up <scenario>        start a scenario (+ attacker + network)
+  ./lab shell                open a shell in the Kali attacker box
+  ./lab reset <scenario>     wipe a scenario back to a clean state
+  ./lab down [--all]         stop the lab (lab resources only)
+  ./lab verify <scenario>    run a scenario self-check (or: verify --all)
+EOF
+}
+
+cmd="${1:-help}"; shift || true
+case "$cmd" in
+  list) echo "Scenarios:"; list_scenarios ;;
+  help|-h|--help) usage ;;
+  up|down|shell|reset|verify)
+    echo "Not implemented yet (added in Task 2+)." >&2; exit 2 ;;
+  *) echo "Unknown command: $cmd" >&2; usage; exit 1 ;;
+esac
