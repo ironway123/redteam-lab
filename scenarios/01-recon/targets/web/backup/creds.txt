@@ -1,0 +1,2 @@
+RECON-FLAG{h1dden_d1rs_g1ve_up_secrets}
+staging login: admin / S3cr3t-Staging!

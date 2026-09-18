@@ -1,0 +1,9 @@
+services:
+  wifi-gen:
+    image: alpine:3
+    container_name: redteam-lab-wifi-gen
+    command: ["sh", "/seed/fetch.sh"]
+    volumes:
+      - redteam-wifi:/out
+      - ./scenarios/05-wireless-offline/data:/seed:ro
+    networks: { redteam-lab-net: { ipv4_address: 172.28.0.50 } }

@@ -1,0 +1,13 @@
+services:
+  dvwa:
+    image: vulnerables/web-dvwa
+    container_name: redteam-lab-dvwa
+    ports: ["8080:80"]
+    networks:
+      redteam-lab-net: { ipv4_address: 172.28.0.20 }
+  juice:
+    image: bkimminich/juice-shop
+    container_name: redteam-lab-juice
+    ports: ["3000:3000"]
+    networks:
+      redteam-lab-net: { ipv4_address: 172.28.0.21 }

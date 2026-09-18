@@ -1,0 +1,8 @@
+services:
+  privesc:
+    build: ./scenarios/04-privesc/target
+    container_name: redteam-lab-privesc
+    cap_add: [SETUID, SETGID]       # allows the 'cap' path's setcap to function
+    environment:
+      PRIVESC_PATH: ${PRIVESC_PATH:-suid}
+    networks: { redteam-lab-net: { ipv4_address: 172.28.0.40 } }

@@ -1,0 +1,20 @@
+services:
+  svc-ftp:
+    build: ./scenarios/03-services/targets/ftp
+    container_name: redteam-lab-svc-ftp
+    networks: { redteam-lab-net: { ipv4_address: 172.28.0.30 } }
+  svc-smb:
+    image: dperson/samba
+    container_name: redteam-lab-svc-smb
+    command: -p -n -s "public;/public;yes;no;yes;all"
+    volumes:
+      - ./scenarios/03-services/targets/smb-share:/public:ro
+    networks: { redteam-lab-net: { ipv4_address: 172.28.0.31 } }
+  svc-ssh:
+    build: ./scenarios/03-services/targets/ssh
+    container_name: redteam-lab-svc-ssh
+    networks: { redteam-lab-net: { ipv4_address: 172.28.0.32 } }
+  svc-web:
+    build: ./scenarios/03-services/targets/web
+    container_name: redteam-lab-svc-web
+    networks: { redteam-lab-net: { ipv4_address: 172.28.0.33 } }

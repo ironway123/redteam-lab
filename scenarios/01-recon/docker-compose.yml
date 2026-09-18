@@ -1,0 +1,29 @@
+services:
+  recon-web:
+    image: nginx:alpine
+    container_name: redteam-lab-recon-web
+    volumes:
+      - ./scenarios/01-recon/targets/web:/usr/share/nginx/html:ro
+      - ./scenarios/01-recon/targets/web/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      redteam-lab-net: { ipv4_address: 172.28.0.10 }
+  recon-ssh:
+    build: ./scenarios/01-recon/targets/ssh
+    container_name: redteam-lab-recon-ssh
+    networks:
+      redteam-lab-net: { ipv4_address: 172.28.0.11 }
+  recon-smb:
+    image: dperson/samba
+    container_name: redteam-lab-recon-smb
+    command: -p -s "public;/share;yes;no;yes;all"
+    networks:
+      redteam-lab-net: { ipv4_address: 172.28.0.12 }
+  recon-multi:
+    build: ./scenarios/01-recon/targets/recon-multi
+    container_name: redteam-lab-recon-multi
+    command: >
+      sh -c "socat TCP-LISTEN:2121,fork,reuseaddr SYSTEM:'echo 220 lab-ftp' &
+             socat TCP-LISTEN:8000,fork,reuseaddr SYSTEM:'echo HTTP/1.0 200' &
+             nginx -g 'daemon off;'"
+    networks:
+      redteam-lab-net: { ipv4_address: 172.28.0.13 }

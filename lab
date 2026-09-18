@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LAB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$LAB_DIR"
+
+PROJECT="redteam-lab"
+BASE="docker-compose.base.yml"
+ATTACKER="redteam-lab-attacker"
+STATE_FILE="$LAB_DIR/.active-scenario"
+
+LINPEAS_PATH="attacker/linpeas.sh"
+LINPEAS_URL="https://raw.githubusercontent.com/peass-ng/PEASS-ng/master/linPEAS/linpeas.sh"
+
+ensure_linpeas() {
+  [ -f "$LINPEAS_PATH" ] && return 0
+  echo ">> fetching linpeas.sh into $LINPEAS_PATH ..."
+  if command -v curl >/dev/null 2>&1 && curl -fsSL "$LINPEAS_URL" -o "$LINPEAS_PATH"; then
+    :
+  elif command -v wget >/dev/null 2>&1 && wget -q "$LINPEAS_URL" -O "$LINPEAS_PATH"; then
+    :
+  else
+    echo ">> could not fetch linpeas.sh (offline?); writing a placeholder stub." >&2
+    cat > "$LINPEAS_PATH" <<'EOF'
+#!/usr/bin/env bash
+echo "linpeas placeholder — real script not fetched (offline at build time)."
+echo "Re-run ./lab up with network access, or drop the real linpeas.sh into attacker/ and rebuild."
+EOF
+  fi
+  chmod +x "$LINPEAS_PATH"
+}
+
+list_scenarios() {
+  local found=0
+  for d in scenarios/*/; do
+    [ -f "${d}docker-compose.yml" ] || continue
+    found=1
+    local name status="stopped"
+    name="$(basename "$d")"
+    if [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE")" = "$name" ]; then
+      status="ACTIVE"
+    fi
+    printf "  %-24s %s\n" "$name" "$status"
+  done
+  [ "$found" -eq 1 ] || echo "  (no scenarios yet)"
+}
+
+usage() {
+  cat <<'EOF'
+redteam-lab control script
+  ./lab list                 list scenarios and status
+  ./lab up <scenario>        start a scenario (+ attacker + network)
+  ./lab shell                open a shell in the Kali attacker box
+  ./lab reset <scenario>     wipe a scenario back to a clean state
+  ./lab down [--all]         stop the lab (lab resources only)
+  ./lab verify <scenario>    run a scenario self-check (or: verify --all)
+EOF
+}
+
+cmd="${1:-help}"; shift || true
+case "$cmd" in
+  list) echo "Scenarios:"; list_scenarios ;;
+  help|-h|--help) usage ;;
+  up)
+    scenario="${1:-}"
+    ensure_linpeas
+    if [ "$scenario" = "base" ]; then
+      docker compose -p "$PROJECT" -f "$BASE" up -d --build
+      echo ">> base (attacker + network) is up."
+      exit 0
+    fi
+    [ -f "scenarios/$scenario/docker-compose.yml" ] || { echo "Unknown scenario: '$scenario'" >&2; list_scenarios >&2; exit 1; }
+    if [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE")" != "$scenario" ]; then
+      echo ">> switching scenarios; tearing down $(cat "$STATE_FILE")"
+      docker compose -p "$PROJECT" down -v --remove-orphans
+    fi
+    docker compose -p "$PROJECT" -f "$BASE" -f "scenarios/$scenario/docker-compose.yml" up -d --build
+    echo "$scenario" > "$STATE_FILE"
+    echo ">> '$scenario' is up. Enter the attacker box: ./lab shell"
+    ;;
+  down)
+    docker compose -p "$PROJECT" down -v --remove-orphans
+    rm -f "$STATE_FILE"
+    echo ">> lab down."
+    ;;
+  shell)
+    docker exec -it "$ATTACKER" bash
+    ;;
+  reset)
+    scenario="${1:-}"
+    [ -f "scenarios/$scenario/docker-compose.yml" ] || { echo "Unknown scenario: '$scenario'" >&2; exit 1; }
+    ensure_linpeas
+    docker compose -p "$PROJECT" down --remove-orphans
+    docker compose -p "$PROJECT" -f "$BASE" -f "scenarios/$scenario/docker-compose.yml" up -d --build
+    echo "$scenario" > "$STATE_FILE"
+    echo ">> '$scenario' reset to a clean state."
+    ;;
+  verify)
+    if [ "${1:-}" = "--all" ]; then
+      rc=0
+      for d in scenarios/*/; do
+        n="$(basename "$d")"; [ -f "$d/verify.sh" ] || continue
+        echo "== verify $n =="
+        "$LAB_DIR/lab" reset "$n" >/dev/null
+        # wait for targets to settle
+        sleep 15
+        bash "$d/verify.sh" || rc=1
+      done
+      exit $rc
+    fi
+    scenario="${1:-}"
+    [ -f "scenarios/$scenario/verify.sh" ] || { echo "No verify.sh for '$scenario'" >&2; exit 1; }
+    bash "scenarios/$scenario/verify.sh"
+    ;;
+  *) echo "Unknown command: $cmd" >&2; usage; exit 1 ;;
+esac
