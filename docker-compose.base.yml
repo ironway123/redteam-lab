@@ -14,6 +14,8 @@ services:
     command: ["sleep", "infinity"]
 
 networks:
+  # Contained lab network: no host gateway, no outbound internet. All targets
+  # and the attacker live here; a compromised target cannot phone home.
   redteam-lab-net:
     name: redteam-lab-net
     driver: bridge
@@ -21,6 +23,13 @@ networks:
     ipam:
       config:
         - subnet: 172.28.0.0/24
+  # Edge network: a normal bridge that provides the host gateway needed to
+  # PUBLISH ports. Only the intentionally host-exposed web apps (DVWA, Juice
+  # Shop in 02-web) join it, so their 8080/3000 bindings work while every
+  # other target stays fully contained on redteam-lab-net.
+  redteam-lab-edge:
+    name: redteam-lab-edge
+    driver: bridge
 
 volumes:
   redteam-loot:
