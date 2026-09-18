@@ -3,11 +3,15 @@ services:
     image: vulnerables/web-dvwa
     container_name: redteam-lab-dvwa
     ports: ["8080:80"]
+    # On redteam-lab-net (attacker reaches it at .20) AND redteam-lab-edge
+    # (non-internal bridge) so the published 8080 binds on the host.
     networks:
       redteam-lab-net: { ipv4_address: 172.28.0.20 }
+      redteam-lab-edge: {}
   juice:
     image: bkimminich/juice-shop
     container_name: redteam-lab-juice
     ports: ["3000:3000"]
     networks:
       redteam-lab-net: { ipv4_address: 172.28.0.21 }
+      redteam-lab-edge: {}
